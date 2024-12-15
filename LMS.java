@@ -1,19 +1,122 @@
-/* Design & Implement the following scenario: Draw a class diagram, and use case diagram for the library system. Discuss your 
-design decisions, and any limitations of your model. For each book held by the library, the catalogue contains the title, author's name and ISBN of the book. There 
-may be multiple copies of a each book and each copy with unique accession number. Registered readers belonging to the library, each of whom is issued with a 
-number of tickets. The system records the name and address of each reader, and the number of tickets that they have been issued with. Readers can borrow one book for 
-each ticket that they possess, and the system keeps a record of which books a reader has borrowed, along with the date that the book must be returned by. Readers can 
-borrow, return and renew books from the library by forwarding a ticket to the library staff at the library desk. Readers have an option of purchasing additional 
-tickets from the library. Any book that is not returned by the due date is subject to a fine of Rs.1 per day. Library staff is responsible for collecting fines, adding new 
-books to the library. */
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Date;
+import java.util.Calendar;
 
-import java.util.*;
+// library user class
+abstract class LibraryUser {
+    private String name;
+    private String address;
 
+    public LibraryUser(String name, String address) {
+        this.name = name;
+        this.address = address;
+    }
 
-// Represents a Book Copy with unique accession number
+    public String getName() {
+        return name;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public abstract void performAction();
+}
+
+// reader class
+class Reader extends LibraryUser {
+    private List<LibraryTicket> tickets;
+    private int availableTickets;
+
+    public Reader(String name, String address, int availableTickets) {
+        super(name, address);
+        this.tickets = new ArrayList<>();
+        this.availableTickets = availableTickets;
+    }
+
+    public void borrowBook(LibraryTicket ticket) {
+        if (availableTickets > 0) {
+            tickets.add(ticket);
+            availableTickets--;
+            System.out.println(getName() + " borrowed the book: " + ticket.getBookCopy().getBook().getTitle());
+        } else {
+            System.out.println("No tickets available to borrow books.");
+        }
+    }
+
+    public void returnBook(LibraryTicket ticket) {
+        tickets.remove(ticket);
+        availableTickets++;
+        System.out.println(getName() + " returned the book: " + ticket.getBookCopy().getBook().getTitle());
+    }
+
+    @Override
+    public void performAction() {
+        System.out.println(getName() + " is a Reader who borrows and returns books.");
+    }
+}
+
+// Library staff
+class LibraryStaff extends LibraryUser {
+    public LibraryStaff(String name, String address) {
+        super(name, address);
+    }
+
+    public void addBook(Library library, Book book) {
+        library.addBook(book);
+        System.out.println("Book titled '" + book.getTitle() + "' added by " + getName());
+    }
+
+    public void collectFine(Reader reader, double fine) {
+        System.out.println("Collected fine of Rs. " + fine + " from " + reader.getName());
+    }
+
+    @Override
+    public void performAction() {
+        System.out.println(getName() + " is a Library Staff who manages the library system.");
+    }
+}
+
+// Book
+class Book {
+    private String title;
+    private String author;
+    private String isbn;
+    private List<BookCopy> copies;
+
+    public Book(String title, String author, String isbn) {
+        this.title = title;
+        this.author = author;
+        this.isbn = isbn;
+        this.copies = new ArrayList<>();
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getAuthor() {
+        return author;
+    }
+
+    public String getIsbn() {
+        return isbn;
+    }
+
+    public void addCopy(String accessionNumber) {
+        copies.add(new BookCopy(this, accessionNumber));
+    }
+
+    public List<BookCopy> getCopies() {
+        return copies;
+    }
+}
+
+// Book Copy
 class BookCopy {
-    private String accessionNumber;
     private Book book;
+    private String accessionNumber;
 
     public BookCopy(Book book, String accessionNumber) {
         this.book = book;
@@ -29,38 +132,12 @@ class BookCopy {
     }
 }
 
-// Represents Book object
-class Book {
-    private String title;
-    private String author;
-    private String isbn;
-    private List<BookCopy> copies;
-
-    public Book(String title, String author, String isbn) {
-        this.title = title;
-        this.author = author;
-        this.isbn = isbn;
-        this.copies = new ArrayList<>();
-    }
-
-    public void addCopy(String accessionNumber) {
-        copies.add(new BookCopy(this, accessionNumber));
-    }
-
-    public List<BookCopy> getCopies() {
-        return copies;
-    }
-
-    public String getTitle() {
-        return title ;
-    }
-}
-
-// Represents LibraryTicket object
+// Ticket
 class LibraryTicket {
     private BookCopy bookCopy;
     private Date borrowDate;
     private Date dueDate;
+    private double finePerDay = 1.0;
 
     public LibraryTicket(BookCopy bookCopy, Date borrowDate, Date dueDate) {
         this.bookCopy = bookCopy;
@@ -72,180 +149,82 @@ class LibraryTicket {
         return bookCopy;
     }
 
-    public Date getDueDate() {
-        return dueDate;
+    public double calculateFine() {
+        long overdueDays = (new Date().getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24);
+        return overdueDays > 0 ? overdueDays * finePerDay : 0;
     }
 }
 
-// Represents Reader object
-class Reader {
-    public String name;
-    private String address;
-    private List<LibraryTicket> tickets;
-    private int availableTickets;
-
-    public Reader(String name, String address, int initialTickets) {
-        this.name = name;
-        this.address = address;
-        this.tickets = new ArrayList<>();
-        this.availableTickets = initialTickets;
-    }
-
-    public void borrowTicket(LibraryTicket ticket) {
-        if (availableTickets > 0) {
-            tickets.add(ticket);
-            availableTickets--;
-        } else {
-            System.out.println("No tickets available. Please purchase more tickets.");
-        }
-    }
-
-    public void returnTicket(LibraryTicket ticket) {
-        tickets.remove(ticket);
-        availableTickets++;
-    }
-
-    public void purchaseAdditionalTickets(int numTickets) {
-        availableTickets += numTickets;
-    }
-
-    public List<LibraryTicket> getTickets() {
-        return tickets;
-    }
-}
-
-// Represents Library Staff who can manage books and fines
-class LibraryStaff {
-    private Library library;
-
-    public LibraryStaff(Library library) {
-        this.library = library;
-    }
-
-    public void addBook(String title, String author, String isbn, int numCopies) {
-        Book book = new Book(title, author, isbn);
-        for (int i = 1; i <= numCopies; i++) {
-            book.addCopy("ACC" + (library.getTotalCopies() + i));
-        }
-        library.addBook(book);
-        System.out.println("Added " + numCopies + " copies of book: " + title);
-    }
-
-    public void collectFine(double amount) {
-        System.out.println("Collected fine of Rs. " + amount);
-    }
-}
-
-// Represents Library
+// Library
 class Library {
     private List<Book> books;
-    private List<Reader> readers;
 
     public Library() {
         this.books = new ArrayList<>();
-        this.readers = new ArrayList<>();
     }
 
     public void addBook(Book book) {
         books.add(book);
     }
 
-    public void addReader(Reader reader) {
-        readers.add(reader);
-    }
-
-    public void borrowBook(Reader reader, Book book) {
-        BookCopy availableCopy = findAvailableCopy(book);
-        if (availableCopy != null) {
-            LibraryTicket ticket = new LibraryTicket(availableCopy, new Date(), calculateDueDate());
-            reader.borrowTicket(ticket);
-            System.out.println(reader.name + " borrowed " + availableCopy.getBook().getTitle());
-        } else {
-            System.out.println("No copies available for this book.");
-        }
-    }
-
-    public void returnBook(Reader reader, Book book) {
-        LibraryTicket ticket = null;
-        for (LibraryTicket t : reader.getTickets()) {
-            if (t.getBookCopy().getBook().equals(book)) {
-                ticket = t;
-                break;
-            }
-        }
-        if (ticket != null) {
-            // Calculate fine
-            long daysLate = calculateDaysLate(ticket.getDueDate());
-            double fine = calculateFine(daysLate);
-            if (fine > 0) {
-                System.out.println("Fine for late return: Rs. " + fine);
-            }
-            reader.returnTicket(ticket);
-        }
-    }
-
-    private BookCopy findAvailableCopy(Book book) {
-        for (BookCopy copy : book.getCopies()) {
-            if (copy != null) { 
-                return copy;
-            }
-        }
-        return null;
-    }
-
-    private Date calculateDueDate() {
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DATE, 14);
-        return cal.getTime();
-    }
-
-    private long calculateDaysLate(Date dueDate) {
-        long diffInMillis = new Date().getTime() - dueDate.getTime();
-        return diffInMillis / (1000 * 60 * 60 * 24);
-    }
-
-    private double calculateFine(long daysLate) {
-        if (daysLate > 0) {
-            return daysLate * 1;
-        }
-        return 0;
-    }
-
-    public int getTotalCopies() {
-        return books.stream().mapToInt(book -> book.getCopies().size()).sum();
-    }
-
     public List<Book> getBooks() {
         return books;
     }
 
-    public List<Reader> getReaders() {
-        return readers;
+    public void displayBooks() {
+        for (Book book : books) {
+            System.out.println("Title: " + book.getTitle() + ", Author: " + book.getAuthor());
+        }
     }
 }
 
-public class LMS {
+// main class
+public class LibraryManagementSystem {
     public static void main(String[] args) {
+        // Creating Library
         Library library = new Library();
-        LibraryStaff staff = new LibraryStaff(library);
 
-        // Add books to the library
-        staff.addBook("Java Programming", "Author A", "12345", 3);
-        staff.addBook("Data Structures", "Author B", "67890", 2);
+        // Creating Books and BookCopies
+        Book book1 = new Book("Java Programming", "John Doe", "12345");
+        book1.addCopy("A001");
+        book1.addCopy("A002");
 
-        // Add a reader
-        Reader reader = new Reader("Vineesha", "123 Street, City", 1);
-        library.addReader(reader);
+        Book book2 = new Book("Python Basics", "Jane Doe", "67890");
+        book2.addCopy("B001");
 
-        // Borrow a book
+        // Adding books to the Library
+        LibraryStaff staff = new LibraryStaff("Alice", "Library Street");
+        staff.addBook(library, book1);
+        staff.addBook(library, book2);
 
-        library.borrowBook(reader, library.getBooks().get(0));
+        // Display Library Books
+        library.displayBooks();
 
-        // Simulate the reader purchasing additional tickets and borrowing more books
-        reader.purchaseAdditionalTickets(2);
-        library.borrowBook(reader, library.getBooks().get(1));
+        // Create a Reader
+        Reader reader = new Reader("Bob", "Reader's Lane", 2);
 
-        // Return a book 
-        library.returnBook(reader, library.getBooks().get(0));
+        // Borrow Book
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_MONTH, 10); // Due in 10 days
+        Date dueDate = calendar.getTime(); // Due date 10 days from today
+        Date borrowDate = new Date();
+
+        LibraryTicket ticket = new LibraryTicket(book1.getCopies().get(0), borrowDate, dueDate);
+        reader.borrowBook(ticket);
+
+        // Return Book
+        reader.returnBook(ticket);
+
+        // Calculate Fine
+        double fine = ticket.calculateFine();
+        if (fine > 0) {
+            staff.collectFine(reader, fine);
+        } else {
+            System.out.println("No fine for " + reader.getName());
+        }
+
+        // Perform Actions
+        staff.performAction();
+        reader.performAction();
     }
 }
